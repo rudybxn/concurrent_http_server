@@ -3,7 +3,7 @@
 A thread is the abstraction for a single execution context within a running process.
 
 - **thread pool**
-A thread pool is a fixed-size pool of worker threads, created upon starting up a web server. Each thread is blocked until it needs to handle an HTTP request. If there are more requests than worker threads, those requests are buffered until there is a worker thread available/
+A thread pool is a fixed-size pool of worker threads, created upon starting up a web server. Each thread is waiting until it needs to handle an HTTP request. If there are more requests than worker threads, those requests are buffered until there is a worker thread available.
 
 - **multi-threading vs. multiprocessing**
 In multi-threading, multiple threads execute within the same process and share a single address space, allowing direct access to shared data. Within that address space, each thread has its own stack. In multiprocessing, each process has its own separate address space in which their data structures are stored.
