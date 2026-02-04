@@ -19,7 +19,7 @@ TCP/IP is a protocol suite that transports data across networks by routing messa
 Concurrency refers to the ability to manage multiple requests at overlapping times. The operating system is an example of a concurrent program. Multi-threaded web servers are supported by the operating system via primitives such as locks and condition variables.
 
 - **synchronization**
-Synchronization refers to the mechanisms used to coordinate concurrent threads and control their access to shared resouces in a controlled and correct manner. It involves managing data access to the shared address space and utilizing locks and condition variables to synchronize thread waiting and signalling.
+Synchronization refers to the mechanisms used to coordinate concurrent threads and control their access to shared resources in a controlled and correct manner. It involves managing data access to the shared address space and utilizing locks and condition variables to synchronize thread waiting and signalling.
 
 - **bounded-buffer (producer-consumer problem)**
 The bounded-buffer problem, also known as the producer-consumer problem, is a synchronization problem. For a multi-threaded web server, a bounded buffer is used for the work queue where a producer thread will put HTTP requests into and a consumer thread will retrieve a request from to process. It is a shared resource that requires synchronized access and its solution involves the use of condition variables and locks.
