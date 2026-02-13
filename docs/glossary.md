@@ -37,4 +37,34 @@ A lock is a variable that allows critical sections of code to be executed atomic
 A condition variable is a synchronization primitive that allows threads to wait for a condition to become true. When another thread changes the condition, it can signal to the waiting threads to wake and continue their execution. It is used in conjunction with locks, using the wait() operation to release a lock and the signal() operation to wake a waiting thread.
 
 - **scheduling policies**
-Scheduling policies for a multi-threaded web server will determine which HTTP request will be handled by each of the waiting worker threads. Two examples of scheduling policies are a First-In-First-Out (FIFO) policy where the oldest request in the buffer will be handled first, and a Smallest-File-First (SFF) policy where a worker thread will handle the request for the smallest file upon waking.
+Scheduling policies for a multi-threaded web server determine which HTTP request will be selected for handling by each of the waiting worker threads.
+
+- **scheduling policy: First-Come-First-Served (FCFS)**
+The FCFS scheduling policy selects requests in the order of arrival, implementing a First-In-First-Out (FIFO) approach to request handling. It does not account for request size or execution time.
+
+- **scheduling policy: Smallest-File-Served (SFF)**
+Under the SFF scheduling policy, the system selects the pending request associated with the smallest file size for service. SFF is strongly related to the Shortest-Job-First (SJF) scheduling policy, with file size used as a proxy to approximate job length.
+
+- **fairness**
+Fairness concerns the degree to which requests receive comparable service, regardless of size or arrival time.
+
+- **throughput**
+Throughput refers to the rate at which the system completes requests, typically measured as requests per unit time.
+
+- **service time**
+The service time of a request is the amount of time required to process it once it begins execution.
+
+- **mean response time**
+The mean response time of a request is the average time from its arrival, to when it is fully served.
+
+- **tail latency**
+Tail latency refers to the response time experienced by the slowest fraction of requests (e.g., 95th or 99th percentile). In the context of certain scheduling policies such as SFF, while metrics such as mean response times are improved, tail latency for large files is often worsened.
+
+- **head-of-line blocking**
+Head-of-line blocking is a condition where a large or slow request at the front of a queue delays all subsequent requests.
+
+- **starvation**
+Starvation refers to the situation where certain requests  may experience unbounded waiting time, thus being 'starved'. An example would be large-size requests under a SFF policy.
+
+- **work-conserving scheduler**
+A work-conserving scheduler is a type of scheduler that never leaves worker threads idle when there are pending requests.
