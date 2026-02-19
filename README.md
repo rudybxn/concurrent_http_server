@@ -16,25 +16,40 @@ Codebase Language: C
 - Compiler: GNU C Compiler (gcc)
 
 ## Instructions
+
 ### Building
+
 Run the following command in the root of the project directory:
+
+**Compile the server:**
 ```bash
 make
 ```
 
-To clean and recompile from scratch:
+**Clean and recompile from scratch:**
 ```bash
 make clean && make
 ```
 
-### Running
+**Compile the server and mock client:**
 ```bash
-./server   
+make mock-client
 ```
 
+### Running
+
+**Run the server to listen for connections:**
+```bash
+./server <port> <threads> <schedalg>
+```
 For example:
 ```bash
 ./server 8080 4 FCFS
+```
+
+**Run the server with a mock client:**
+```bash
+make mock-client
 ```
 
 ## Project Structure
