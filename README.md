@@ -17,14 +17,24 @@ Codebase Language: C
 
 ## Instructions
 ### Building
-<!-- Steps and commands to compile the project (e.g. make, gcc flags) -->
-### Running
-<!-- How to start the server, CLI flags/options with descriptions and defaults -->
-<!-- MAKE SURE TO UPDATE BEFORE SUBMISSION -->
-**Sprint 2 instructions**: To compile and run this program, run the below:
+Run the following command in the root of the project directory:
+```bash
+make
 ```
-gcc main.c http.c thread_pool.c -o server
-./server
+
+To clean and recompile from scratch:
+```bash
+make clean && make
+```
+
+### Running
+```bash
+./server   
+```
+
+For example:
+```bash
+./server 8080 4 FCFS
 ```
 
 ## Project Structure
