@@ -51,6 +51,7 @@ For example:
 ```bash
 make mock-client
 ```
+Kill the server with `Ctrl + C` after the client sends its response.
 
 ## Project Structure
 <!-- Directory tree with a one-line description of each file or folder -->
