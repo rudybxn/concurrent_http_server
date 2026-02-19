@@ -42,7 +42,6 @@ int main(void) {
          AF_INET    = IPv4 (as opposed to AF_INET6 for IPv6)
          SOCK_STREAM = TCP (as opposed to SOCK_DGRAM for UDP)
          0          = let the OS pick the right protocol automatically */
-    */
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
         perror("socket");
