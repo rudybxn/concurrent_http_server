@@ -90,7 +90,7 @@ int main(void) {
         perror("listen");
         exit(EXIT_FAILURE);
     }
-
+    printf("======= SERVER STARTED. =======\n");
     printf("Listening on port %d...\n", PORT);
 
      /* ---- Step 5: Accept loop ---------------------------------------

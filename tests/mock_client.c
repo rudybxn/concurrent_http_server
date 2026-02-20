@@ -20,12 +20,16 @@ int main() {
     inet_pton(AF_INET, "127.0.0.1", &server.sin_addr);
 
     connect(sock, (struct sockaddr *)&server, sizeof(server));
+    printf("======= CLIENT STARTED. =======\n");
+    printf("Sending request...\n");
 
     char *request = "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n";
     send(sock, request, strlen(request), 0);
+    printf("Request sent.\n");
 
     char response[1024] = {0};
     recv(sock, response, sizeof(response), 0);
+    printf("--- Received Response ---\n");
     printf("%s\n", response);
 
     close(sock);

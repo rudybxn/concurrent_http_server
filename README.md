@@ -17,41 +17,27 @@ Codebase Language: C
 
 ## Instructions
 
-### Building
-
-Run the following command in the root of the project directory:
-
-**Compile the server:**
+### Build the server
 ```bash
 make
 ```
 
-**Clean and recompile from scratch:**
-```bash
-make clean && make
-```
-
-**Compile the server and mock client:**
-```bash
-make mock-client
-```
-
-### Running
-
-**Run the server to listen for connections:**
-```bash
-./server <port> <threads> <schedalg>
-```
-For example:
+### Run the server
 ```bash
 ./server 8080 4 FCFS
 ```
+The server will start listening on port 8080. Press `Ctrl+C` to stop it.
 
-**Run the server with a mock client:**
+### Run tests
 ```bash
-make mock-client
+make test
 ```
-Kill the server with `Ctrl + C` after the client sends its response.
+This builds and starts the server, waits for it to be ready, then runs the mock client against it.
+
+### Clean build artifacts
+```bash
+make clean
+```
 
 ## Project Structure
 <!-- Directory tree with a one-line description of each file or folder -->
