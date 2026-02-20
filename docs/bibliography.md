@@ -113,5 +113,13 @@ Category: Book (Textbook/Reference)
 Summary: A mutex (mutual exclusion) is a synchronization mechanism that prevents race conditions on shared resources by granting exclusive access to one task at a time, blocking all other tasks that wish to manipulate the same resource.  
 
 Relevance: Our HTTP server runs multiple worker threads that dequeue work from a single shared bounded buffer. Mutexes are employed to prevent race conditions during both enqueue (main thread) and dequeue (worker threads) operations, making this a core synchronization primitive in our implementation.
-Summary: A mutex (mutual exclusion) is a synchronization mechanism that prevents race conditions on shared resources by granting exclusive access to one task at a time, blocking all other tasks that wish to manipulate the same resource.
-Relevance: Our HTTP server runs multiple worker threads that dequeue work from a single shared bounded buffer. Mutexes are employed to prevent race conditions during both enqueue (main thread) and dequeue (worker threads) operations, making this a core synchronization primitive in our implementation.
+
+[12]Crovella, M. E., & Bestavros, A., "**Self-Similarity in World Wide Web Traffic: Evidence and Possible Causes**," IEEE/ACM Transactions on Networking, 5(6), 835–846, 1997.  
+
+[Link](https://asvk.cs.msu.ru/wp-content/uploads/2023/04/crovella1997_Self-SimilarityInWorldWideWebTraffic.pdf)  
+
+Category: Academic Paper (Classic/Foundational)  
+
+Summary: This paper demonstrates that World Wide Web traffic exhibits self-similar, heavy-tailed behavior; meaning a small number of very large transfers account for a disproportionate share of total bytes, while the vast majority of requests are small. The authors validate this through empirical trace analysis and identify file size distributions as a root cause.  
+
+Relevance: This paper provides the empirical backbone for our entire experimental workload design. The heavy-tailed file size distribution in testing is grounded in exactly the traffic patterns Crovella & Bestavros documented. Without this heavy-tailed reality, SFF's advantage over FCFS would be negligible; it is precisely because most requests are small and rare requests are large that prioritizing by size yields the 30–50% mean response time reduction we hypothesize.
