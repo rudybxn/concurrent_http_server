@@ -12,12 +12,12 @@
 
 #define BUF_SIZE 4096
 
-#define HARDCODED_TXT "Hello, World!" // HACK: Implement dynamic responses later and remove this hardcoded text.
+#define HARDCODED_TXT "Hello, World!\n" // HACK: Implement dynamic responses later and remove this hardcoded text.
 
 static const char *RESPONSE =
     "HTTP/1.1 200 OK\r\n"
     "Content-Type: text/plain\r\n"
-    "Content-Length: 13\r\n"
+    "Content-Length: 14\r\n"
     "Connection: close\r\n"
     "\r\n"
     HARDCODED_TXT;
