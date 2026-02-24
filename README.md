@@ -1,3 +1,72 @@
-Readme file for team 0101.
+# OSTEP G.5 Concurrent Web Server - Team 0101
+*This project explores the impact of size-based scheduling on concurrent web server performance, focusing on two scheduling policies: First-Come-First-Served (FCFS) and Shortest-File-First (SFF). Our web server implements a fixed-size thread pool with a bounded buffer and is based on a producer-consumer model.*
 
-Google Sheet: https://docs.google.com/spreadsheets/d/1h_nNWYMj3j0Qd1xJ3MwdG4fjjc7fUvO87jzA1AlHy-k/edit?gid=0#gid=0
+## Overview
+Codebase Language: C
+<!-- Expand on the description, research question, and concurrency model (3–5 sentences) -->
+
+## Features
+<!-- Bullet list of implemented features (thread pool, bounded buffer, FCFS/SFF, etc.) -->
+
+## Architecture
+<!-- Describe the producer-consumer model, thread pool, and how scheduling plugs in -->
+
+## Requirements
+<!-- OS, compiler/version, libraries (pthreads), build tools -->
+- Compiler: GNU C Compiler (gcc)
+
+## Instructions
+
+### Build the server
+```bash
+make
+```
+
+### Run the server
+```bash
+./server 8080 4 FCFS
+```
+The server will start listening on port 8080. Press `Ctrl+C` to stop it.
+
+### Run tests
+```bash
+make test
+```
+This builds and starts the server, waits for it to be ready, then runs the mock client against it.
+
+### Clean build artifacts
+```bash
+make clean
+```
+
+## Project Structure
+<!-- Directory tree with a one-line description of each file or folder -->
+```
+project-webserver-team0101/
+├── docs/
+│   └── diagrams/  # UML diagrams (PDF)
+├── src/
+│   └── *.c files
+├── include/
+│   └── *.h files
+├── tests/
+│   └── test files
+├── www/
+│   └── static files our server will serve
+├── Makefile
+└── README.md
+```
+
+## Testing
+<!-- How to run tests and reproduce scheduling comparison results (e.g. curl, ApacheBench) -->
+
+## Team
+- Helena Zhuo
+- Ishit Arhatia
+- Tomas Colorado
+- Rudrajit Banerjee
+
+## Links
+[Research Proposal](https://github.com/cs5600-sp26/project-webserver-team0101/blob/main/docs/updated_cs5800_research_question.pdf)
+
+[Contribution Tracker - Google Sheet](https://docs.google.com/spreadsheets/d/1h_nNWYMj3j0Qd1xJ3MwdG4fjjc7fUvO87jzA1AlHy-k/edit?gid=0#gid=0)
