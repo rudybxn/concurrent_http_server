@@ -2,6 +2,9 @@
 
 ---
 
+** Research Extension Update **
+After reviewing all 12 sources in this annotated bibliography, we have decided to proceed with our original research proposal without major modifications. The literature  validates our approach: Harchol-Balter et al. [4] provides direct theoretical support for our hypothesis that SFF will reduce mean response time by 2-4× under heavy-tailed workloads, while Crovella & Bestavros [12] confirms the heavy-tailed file size distributions our experimental workload must replicate. Lampson [1] reinforces our architectural decisions around separation of concerns and fixed-size thread pools. Anderson et al. [2] quantifies kernel threading overhead, confirming our O(n) buffer scan adds negligible cost. The Bendersky tutorial [5] and Stack Overflow discussion [7] informed our implementation approach using pthreads and justified our thread pool architecture over event-driven models. Our exploration of Apache [8], Nginx [9], and production insights from Netflix [6] confirmed that FCFS is the default in production servers and that scheduling policies matter most at moderate-to-high utilization. Shenango [3] validates that scheduling overhead is negligible compared to context switch costs. Together, these sources confirm our research question is well-founded.
+
 **Concurrent Web Server: Thread Pool Architecture with Size-Based Scheduling**
 
 [1] Lampson, B. W., "**Hints for Computer System Design**," ACM SIGOPS Operating Systems Review 17(5), 33–48, 1983.  
