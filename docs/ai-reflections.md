@@ -7,3 +7,4 @@
 ## Tomas Colorado
     For this sprint, I didn't use AI to assist me in my tasks.
 ## Rudrajit Banerjee
+    For this sprint, I didn't use AI for my tasks.
