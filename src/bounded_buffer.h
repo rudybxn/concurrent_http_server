@@ -21,7 +21,7 @@
 #define BOUNDED_BUFFER_H
 
 #include <pthread.h>
-#include <sys/types.h> /* off_t */
+#include <sys/types.h>
 
 /* ---- Request descriptor ----------------------------------------
    Populated by the producer (main thread) before enqueueing.

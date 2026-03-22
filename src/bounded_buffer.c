@@ -1,7 +1,7 @@
 /* =============================================================
  * bounded_buffer.c
  *
- * Implementation of a thread-safe bounded buffer (circular queue).
+ * Implementation of thread-safe bounded buffer (circular queue).
  * FCFS dequeue: items come out in the order they went in.
  *
  * Invariants:
