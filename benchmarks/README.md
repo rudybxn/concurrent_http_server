@@ -103,3 +103,49 @@ chmod +x benchmark.sh
 ```
 
 *Note: A full run takes approximately 50–55 minutes (75 configurations × 5 trials × ~35 seconds each plus server restart and sleep overhead).*
+
+### Verifying Results
+
+After the benchmark completes, verify that all configurations ran and no output files are empty:
+
+```bash
+./benchmarks/verify.sh
+```
+
+This checks that all 75 expected files exist and are non-empty, and prints a list of any missing or empty files.
+
+### Rerunning a Specific Configuration
+
+If individual files are missing or empty, rerun that configuration manually. Start the server, run wrk with the matching parameters, then kill the server:
+
+```bash
+./server 8080 4 FCFS www/test &
+SERVER_PID=$!
+sleep 2
+taskset -c 2,3 wrk -t2 -c<CONCURRENCY> -d30s --latency \
+    http://localhost:8080/<WORKLOAD>.bin > benchmarks/raw/<WORKLOAD>_c<CONCURRENCY>_t<TRIAL>.txt
+kill $SERVER_PID
+```
+
+Replace `<CONCURRENCY>`, `<WORKLOAD>` (`small`, `large`, or `heavy`), and `<TRIAL>` with the values from the missing file name. For the heavy-tailed workload, add `-s benchmarks/heavy_tail.lua` and use the base URL instead of a specific file:
+
+```bash
+taskset -c 2,3 wrk -t2 -c<CONCURRENCY> -d30s --latency \
+    -s benchmarks/heavy_tail.lua http://localhost:8080 > benchmarks/raw/heavy_c<CONCURRENCY>_t<TRIAL>.txt
+```
+
+Run `./benchmarks/verify.sh` again to confirm all files are present.
+
+### Cleaning Raw Output
+
+To remove all raw output files and start fresh:
+
+```bash
+./benchmarks/clean.sh
+```
+
+Then rerun the full benchmark:
+
+```bash
+./benchmarks/benchmark.sh
+```
