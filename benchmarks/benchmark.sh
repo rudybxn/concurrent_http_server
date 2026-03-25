@@ -20,8 +20,9 @@ CONCURRENCY_LEVELS="1 10 25 50 100 200"
 RUNS=5
 
 SERVER=./server
-LUA_SCRIPT=heavy_tail.lua
-RAW_DIR=raw
+SCRIPT_DIR=$(dirname "$0")
+LUA_SCRIPT=$SCRIPT_DIR/heavy_tail.lua
+RAW_DIR=$SCRIPT_DIR/raw
 URL=http://localhost:$PORT
 
 # --- Step 1: Minimize background noise -----------------------

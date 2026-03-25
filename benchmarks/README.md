@@ -45,7 +45,7 @@ dd if=/dev/zero of=www/test/large.bin bs=1M count=1
 Create the heavy-tailed workload by generating this Lua script used by wrk to mix request types:
 
 ```bash
-cat > heavy_tail.lua << 'EOF'
+cat > benchmarks/heavy_tail.lua << 'EOF'
 math.randomseed(os.time())
 
 request = function()
