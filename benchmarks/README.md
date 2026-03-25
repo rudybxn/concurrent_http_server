@@ -9,7 +9,7 @@
 | Guest OS | Ubuntu 22.04 LTS |
 | Guest resources | 4 vCPUs, 4GB RAM |
 | Compiler | GCC 11.4, -O2 |
-| Load generator | wrk 4.1.0 |
+| Load generator | wrk 4.2.0 |
 
 *Note: wrk embeds LuaJIT for scripted workloads — Lua does not need to be installed separately.*
 
