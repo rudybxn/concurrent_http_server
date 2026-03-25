@@ -95,9 +95,11 @@ Build the server:
 make
 ```
 
-Run the benchmark:
+From the project root, run the benchmark:
 
 ```bash
 chmod +x benchmark.sh
 ./benchmark.sh
 ```
+
+*Note: A full run takes approximately 50–55 minutes (75 configurations × 5 trials × ~35 seconds each plus server restart and sleep overhead).*
