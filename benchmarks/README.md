@@ -13,11 +13,11 @@
 
 *Note: wrk embeds LuaJIT for scripted workloads — Lua does not need to be installed separately.*
 
-To recreate this environment, set up a new Ubuntu 22.04 LTS VM in UTM with 4 vCPUs and 4GB RAM. Install dependencies:
+To recreate this environment, set up a new Ubuntu 22.04 LTS VM in UTM with 4 vCPUs and 4GB RAM. Install dependencies gcc and netcat:
 
 ```bash
 sudo apt update
-sudo apt install -y gcc make build-essential libssl-dev git
+sudo apt install -y gcc make build-essential libssl-dev git netcat
 ```
 
 Install wrk:
@@ -98,8 +98,8 @@ make
 From the project root, run the benchmark:
 
 ```bash
-chmod +x benchmark.sh
-./benchmark.sh
+chmod +x benchmarks/benchmark.sh
+./benchmarks/benchmark.sh
 ```
 
 *Note: A full run takes approximately 50–55 minutes (75 configurations × 5 trials × ~35 seconds each plus server restart and sleep overhead).*

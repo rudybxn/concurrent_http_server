@@ -40,7 +40,19 @@ echo "[setup] Background services stopped."
 start_server() {
     taskset -c 0,1 $SERVER $PORT $THREADS $SCHEDULE $DOCROOT &
     SERVER_PID=$!
-    sleep 5  # wait for server to bind and start listening
+
+    # Poll until server is accepting connections
+    for i in $(seq 1 15); do
+        sleep 1
+        if nc -z localhost $PORT 2>/dev/null; then
+            echo "[setup] Server ready (PID $SERVER_PID)."
+            return
+        fi
+        echo "[setup] Waiting for server... ($i/15)"
+    done
+
+    echo "[error] Server failed to start after 15 seconds. Aborting."
+    exit 1
 }
 
 # --- Helper: stop server -------------------------------------
