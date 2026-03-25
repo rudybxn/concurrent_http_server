@@ -2,7 +2,7 @@
 
 # =============================================================
 # benchmark.sh
-# Prepares the environment, runs all benchmark configurations,
+# Prepares the environment, TRIALS all benchmark configurations,
 # and tears down the server when done.
 # =============================================================
 
@@ -17,7 +17,7 @@ DOCROOT=www/test
 WRK_THREADS=$(( C < 2 ? 1 : 2 ))
 DURATION=30s
 CONCURRENCY_LEVELS="1 10 25 50 100 200"
-RUNS=5
+TRIALS=5
 
 SERVER=./server
 SCRIPT_DIR=$(dirname "$0")
@@ -50,23 +50,23 @@ echo "[warmup] Done."
 mkdir -p $RAW_DIR
 
 for C in $CONCURRENCY_LEVELS; do
-    for RUN in $(seq 1 $RUNS); do
+    for TRIAL in $(seq 1 $TRIALS); do
 
-        echo "[bench] uniform small  | concurrency=$C | run=$RUN"
+        echo "[bench] uniform small  | concurrency=$C | trial=$TRIAL"
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            $URL/small.bin > $RAW_DIR/small_c${C}_r${RUN}.txt
+            $URL/small.bin > $RAW_DIR/small_c${C}_t${TRIAL}.txt
 
         sleep 5
 
-        echo "[bench] uniform large  | concurrency=$C | run=$RUN"
+        echo "[bench] uniform large  | concurrency=$C | trial=$TRIAL"
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            $URL/large.bin > $RAW_DIR/large_c${C}_r${RUN}.txt
+            $URL/large.bin > $RAW_DIR/large_c${C}_t${TRIAL}.txt
 
         sleep 5
 
-        echo "[bench] heavy-tailed   | concurrency=$C | run=$RUN"
+        echo "[bench] heavy-tailed   | concurrency=$C | trial=$TRIAL"
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            -s $LUA_SCRIPT $URL > $RAW_DIR/heavy_c${C}_r${RUN}.txt
+            -s $LUA_SCRIPT $URL > $RAW_DIR/heavy_c${C}_t${TRIAL}.txt
 
         sleep 5
 
