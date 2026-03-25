@@ -54,7 +54,7 @@ else
     done
     echo ""
     echo " Rerun ./benchmarks/benchmark.sh to collect missing data,"
-    echo " or run ./benchmarks/clean.sh first for a full reset."
+    echo " or run ./benchmarks/benchmark_clean.sh first for a full reset."
 fi
 
 echo "================================================"
