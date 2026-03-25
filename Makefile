@@ -41,7 +41,9 @@ $(MOCK_CLIENT): tests/mock_client.c
 #  5. Kill the server and report result
 test: $(TARGET) $(MOCK_CLIENT)
 	@mkdir -p www
-	@echo '<html><body><h1>It works!</h1></body></html>' > www/index.html
+	@if [ ! -f www/index.html ]; then \
+		echo '<html><body><h1>It works!</h1></body></html>' > www/index.html; \
+	fi
 	@echo "--- Starting server on port $(PORT) with $(THREADS) threads ---"
 	@./$(TARGET) -p $(PORT) -t $(THREADS) -b $(BUFSIZE) -s $(SCHEDULE) & \
 	SERVER_PID=$$!; \

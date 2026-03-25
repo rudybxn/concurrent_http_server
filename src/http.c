@@ -125,7 +125,7 @@ static int parse_request_line(const char *buf, char *method, size_t method_sz,
    Called by worker threads. Reads one HTTP request, serves the
    file or returns an error, then closes the connection. */
 void http_handle(int client_fd) {
-    sleep(2);
+    //sleep(2);
     char buf[BUF_SIZE];
     char method[16];
     char uri_path[PATH_MAX_];
