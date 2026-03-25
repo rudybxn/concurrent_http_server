@@ -2,11 +2,16 @@
 
 # =============================================================
 # benchmark.sh
-# Prepares the environment, TRIALS all benchmark configurations,
+# Prepares the environment, runs all benchmark configurations,
 # and tears down the server when done.
+#
+# Protocol:
+#   - 5 independent trials per configuration
+#   - 5-second warmup per trial (excluded from measurement)
+#   - Server restarted between trials to clear warm state
 # =============================================================
 
-set -e  # exit immediately if any command fails
+set -e
 
 # --- Configuration -------------------------------------------
 PORT=8080
@@ -14,7 +19,7 @@ THREADS=4
 SCHEDULE=FCFS
 DOCROOT=www/test
 
-WRK_THREADS=$(( C < 2 ? 1 : 2 ))
+WARMUP_DURATION=5s
 DURATION=30s
 CONCURRENCY_LEVELS="1 10 25 50 100 200"
 TRIALS=5
@@ -29,58 +34,66 @@ URL=http://localhost:$PORT
 echo "[setup] Stopping background services..."
 sudo systemctl stop snapd 2>/dev/null || true
 sudo systemctl stop unattended-upgrades 2>/dev/null || true
-
 echo "[setup] Background services stopped."
 
-# --- Step 2: Start the server pinned to cores 0-1 -----------
-echo "[setup] Starting server on cores 0-1..."
-taskset -c 0,1 $SERVER $PORT $THREADS $SCHEDULE $DOCROOT &
-SERVER_PID=$!
-echo "[setup] Server started (PID $SERVER_PID)."
+# --- Helper: start server ------------------------------------
+start_server() {
+    taskset -c 0,1 $SERVER $PORT $THREADS $SCHEDULE $DOCROOT &
+    SERVER_PID=$!
+    sleep 5  # wait for server to bind and start listening
+}
 
-# Give the server time to bind and start listening
-sleep 2
+# --- Helper: stop server -------------------------------------
+stop_server() {
+    kill $SERVER_PID
+    wait $SERVER_PID 2>/dev/null || true
+}
 
-# --- Step 3: Warmup ------------------------------------------
-echo "[warmup] Running warmup (discarded)..."
-taskset -c 2,3 wrk -t$WRK_THREADS -c10 -d5s $URL/small.bin > /dev/null
-echo "[warmup] Done."
-
-# --- Step 4: Run benchmark configurations --------------------
+# --- Step 2: Run benchmark configurations --------------------
 mkdir -p $RAW_DIR
 
 for C in $CONCURRENCY_LEVELS; do
     for TRIAL in $(seq 1 $TRIALS); do
+        WRK_THREADS=$(( C < 2 ? 1 : 2 ))
 
+        # Uniform small
         echo "[bench] uniform small  | concurrency=$C | trial=$TRIAL"
+        start_server
+        taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
+            $URL/small.bin > /dev/null
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
             $URL/small.bin > $RAW_DIR/small_c${C}_t${TRIAL}.txt
+        stop_server
 
         sleep 5
 
+        # Uniform large
         echo "[bench] uniform large  | concurrency=$C | trial=$TRIAL"
+        start_server
+        taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
+            $URL/large.bin > /dev/null
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
             $URL/large.bin > $RAW_DIR/large_c${C}_t${TRIAL}.txt
+        stop_server
 
         sleep 5
 
+        # Heavy-tailed
         echo "[bench] heavy-tailed   | concurrency=$C | trial=$TRIAL"
+        start_server
+        taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
+            -s $LUA_SCRIPT $URL > /dev/null
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
             -s $LUA_SCRIPT $URL > $RAW_DIR/heavy_c${C}_t${TRIAL}.txt
+        stop_server
 
         sleep 5
 
     done
 done
 
-# --- Step 5: Tear down ---------------------------------------
-echo "[teardown] Killing server (PID $SERVER_PID)..."
-kill $SERVER_PID
-wait $SERVER_PID 2>/dev/null || true
-echo "[teardown] Server killed."
-
 echo ""
-echo "Done. Raw results saved to ./$RAW_DIR/"
+echo "Done. Raw results saved to $RAW_DIR/"
 
 # --- Step 6: Parse raw results into CSV ----------------------
 SUMMARY=$RAW_DIR/summary.csv
