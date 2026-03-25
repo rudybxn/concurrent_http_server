@@ -81,3 +81,33 @@ echo "[teardown] Server killed."
 
 echo ""
 echo "Done. Raw results saved to ./$RAW_DIR/"
+
+# --- Step 6: Parse raw results into CSV ----------------------
+SUMMARY=$RAW_DIR/summary.csv
+echo "workload,concurrency,trial,rps,mean_ms,p50_ms,p95_ms,p99_ms,errors" > $SUMMARY
+
+parse_wrk() {
+    local file=$1
+    local workload=$2
+    local concurrency=$3
+    local trial=$4
+
+    rps=$(grep "Requests/sec" "$file" | awk '{print $2}')
+    mean=$(grep "Latency" "$file" | head -1 | awk '{print $2}' | sed 's/ms//')
+    p50=$(grep "50%" "$file" | awk '{print $2}' | sed 's/ms//')
+    p95=$(grep "95%" "$file" | awk '{print $2}' | sed 's/ms//')
+    p99=$(grep "99%" "$file" | awk '{print $2}' | sed 's/ms//')
+    errors=$(grep "Socket errors" "$file" | awk '{print $NF}' || echo 0)
+
+    echo "$workload,$concurrency,$trial,$rps,$mean,$p50,$p95,$p99,$errors" >> $SUMMARY
+}
+
+for C in $CONCURRENCY_LEVELS; do
+    for TRIAL in $(seq 1 $TRIALS); do
+        parse_wrk $RAW_DIR/small_c${C}_t${TRIAL}.txt  "small"  $C $TRIAL
+        parse_wrk $RAW_DIR/large_c${C}_t${TRIAL}.txt  "large"  $C $TRIAL
+        parse_wrk $RAW_DIR/heavy_c${C}_t${TRIAL}.txt  "heavy"  $C $TRIAL
+    done
+done
+
+echo "Summary written to $SUMMARY"
