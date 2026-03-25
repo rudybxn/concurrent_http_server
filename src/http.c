@@ -129,7 +129,7 @@ void http_handle(int client_fd) {
     char buf[BUF_SIZE];
     char method[16];
     char uri_path[PATH_MAX_];
-    char file_path[PATH_MAX_];
+    char file_path[PATH_MAX_ + sizeof(WEB_ROOT)];
 
     /* Step 1: Read the request.
        One read() is sufficient for typical HTTP/1.1 GET requests

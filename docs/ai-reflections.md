@@ -7,4 +7,4 @@
 ## Tomas Colorado
     For this sprint, I didn't use AI to assist me in my tasks.
 ## Rudrajit Banerjee
-    For this sprint, I didn't use AI for my tasks.
+    For sprint 3, I used AI to plan and organize code for the backend functionality of the server. I used it to generate boilerplate code upon which I made changes with respect to the functionality mentioned in our research proposal and concepts I learned in OSTEP. I also used it to reason about architectural decisions (like why the bounded buffer should be separate from the thread pool, and why the buffer should hold request_t structs instead of ints).  I also used it to understand unfamiliar POSIX APIs which I had not come across before (pthread_cond_wait, sigaction, stat).
