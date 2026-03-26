@@ -71,7 +71,7 @@ EOF
 ### Dependent Variables
 
 - **Throughput** — requests per second
-- **Response time** — mean, p50, p95, p99 (milliseconds)
+- **Response time** — mean, p50, p90, p99 (milliseconds)
 - **Error rate** — connection resets and timeouts
 
 ### Protocol

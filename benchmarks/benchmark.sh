@@ -119,7 +119,7 @@ echo "Done. Raw results saved to $RAW_DIR/"
 
 # --- Step 6: Parse raw results into CSV ----------------------
 SUMMARY=$RAW_DIR/summary.csv
-echo "workload,concurrency,trial,rps,mean_ms,p50_ms,p95_ms,p99_ms,errors" > $SUMMARY
+echo "workload,concurrency,trial,rps,mean_ms,p50_ms,p75_ms,p90_ms,p99_ms,errors" > $SUMMARY
 
 parse_wrk() {
     local file=$1
@@ -130,11 +130,12 @@ parse_wrk() {
     rps=$(grep "Requests/sec" "$file" | awk '{print $2}')
     mean=$(grep "Latency" "$file" | head -1 | awk '{print $2}' | sed 's/ms//')
     p50=$(grep "50%" "$file" | awk '{print $2}' | sed 's/ms//')
-    p95=$(grep "95%" "$file" | awk '{print $2}' | sed 's/ms//')
+    p75=$(grep "75%" "$file" | awk '{print $2}' | sed 's/ms//')
+    p90=$(grep "90%" "$file" | awk '{print $2}' | sed 's/ms//')
     p99=$(grep "99%" "$file" | awk '{print $2}' | sed 's/ms//')
     errors=$(grep "Socket errors" "$file" | awk '{print $NF}' || echo 0)
 
-    echo "$workload,$concurrency,$trial,$rps,$mean,$p50,$p95,$p99,$errors" >> $SUMMARY
+    echo "$workload,$concurrency,$trial,$rps,$mean,$p50,$p75,$p90,$p99,$errors" >> $SUMMARY
 }
 
 for C in $CONCURRENCY_LEVELS; do
