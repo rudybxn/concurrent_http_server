@@ -35,6 +35,8 @@ echo "[setup] Stopping background services..."
 sudo systemctl stop snapd 2>/dev/null || true
 sudo systemctl stop unattended-upgrades 2>/dev/null || true
 echo "[setup] Background services stopped."
+echo ""
+echo "======= BENCHMARK START ======="
 
 # --- Helper: start server ------------------------------------
 start_server() {
@@ -45,7 +47,7 @@ start_server() {
     for i in $(seq 1 15); do
         sleep 1
         if nc -z localhost $PORT 2>/dev/null; then
-            echo "[setup] Server ready (PID $SERVER_PID)."
+            echo "[setup] Server ready to accept connections (PID $SERVER_PID)."
             return
         fi
         echo "[setup] Waiting for server... ($i/15)"
@@ -64,7 +66,7 @@ stop_server() {
         echo "[teardown] Waiting for port to be released..."
         sleep 1
     done
-    echo "===== Server Stopped ====="
+    echo "======= SERVER STOPPED ======="
     echo ""
 }
 
@@ -74,9 +76,10 @@ mkdir -p $RAW_DIR
 for C in $CONCURRENCY_LEVELS; do
     for TRIAL in $(seq 1 $TRIALS); do
         WRK_THREADS=$(( C < 2 ? 1 : 2 ))
-
+        echo ""
+        
         # Uniform small
-        echo "[bench] uniform small  | concurrency=$C | trial=$TRIAL"
+        echo "[BENCHMARK] workload=uniform small  | concurrency=$C | trial=$TRIAL"
         start_server
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
             $URL/small.bin > /dev/null
@@ -87,7 +90,7 @@ for C in $CONCURRENCY_LEVELS; do
         sleep 5
 
         # Uniform large
-        echo "[bench] uniform large  | concurrency=$C | trial=$TRIAL"
+        echo "[BENCHMARK] workload=uniform large  | concurrency=$C | trial=$TRIAL"
         start_server
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
             $URL/large.bin > /dev/null
@@ -98,7 +101,7 @@ for C in $CONCURRENCY_LEVELS; do
         sleep 5
 
         # Heavy-tailed
-        echo "[bench] heavy-tailed   | concurrency=$C | trial=$TRIAL"
+        echo "[BENCHMARK] workload=heavy-tailed   | concurrency=$C | trial=$TRIAL"
         start_server
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
             -s $LUA_SCRIPT $URL > /dev/null
