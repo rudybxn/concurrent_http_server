@@ -59,6 +59,13 @@ start_server() {
 stop_server() {
     kill $SERVER_PID
     wait $SERVER_PID 2>/dev/null || true
+    # Wait for port to be fully released
+    while nc -z localhost $PORT 2>/dev/null; do
+        echo "[teardown] Waiting for port to be released..."
+        sleep 1
+    done
+    echo "===== Server Stopped ====="
+    echo ""
 }
 
 # --- Step 2: Run benchmark configurations --------------------
