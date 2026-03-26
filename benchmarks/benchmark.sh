@@ -17,7 +17,6 @@ set -e
 PORT=8080
 THREADS=4
 SCHEDULE=FCFS
-DOCROOT=www/test
 
 WARMUP_DURATION=5s
 DURATION=30s
@@ -47,7 +46,7 @@ start_server() {
     for i in $(seq 1 15); do
         sleep 1
         if nc -z localhost $PORT 2>/dev/null; then
-            echo "[setup] Server ready (PID $SERVER_PID)."
+            echo "[setup] Server ready to accept connections (PID $SERVER_PID)."
             return
         fi
         echo "[setup] Waiting for server... ($i/15)"
@@ -82,42 +81,43 @@ for C in $CONCURRENCY_LEVELS; do
         echo "[BENCHMARK] workload=uniform small  | concurrency=$C | trial=$TRIAL"
         start_server
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
-            $URL/test/small.bin > /dev/null
+            $URL/test/small.bin > /dev/null || true
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            $URL/test/small.bin > $RAW_DIR/small_c${C}_t${TRIAL}.txt
+            $URL/test/small.bin > $RAW_DIR/small_c${C}_t${TRIAL}.txt || true
         stop_server
 
-        sleep 5
+        sleep 8
 
         # Uniform large
         echo "[BENCHMARK] workload=uniform large  | concurrency=$C | trial=$TRIAL"
         start_server
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
-            $URL/test/large.bin > /dev/null
+            $URL/test/large.bin > /dev/null || true
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            $URL/test/large.bin > $RAW_DIR/large_c${C}_t${TRIAL}.txt
+            $URL/test/large.bin > $RAW_DIR/large_c${C}_t${TRIAL}.txt || true
         stop_server
 
-        sleep 5
+        sleep 8
 
         # Heavy-tailed
         echo "[BENCHMARK] workload=heavy-tailed   | concurrency=$C | trial=$TRIAL"
         start_server
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
-            -s $LUA_SCRIPT $URL > /dev/null
+            -s $LUA_SCRIPT $URL > /dev/null || true
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            -s $LUA_SCRIPT $URL > $RAW_DIR/heavy_c${C}_t${TRIAL}.txt
+            -s $LUA_SCRIPT $URL > $RAW_DIR/heavy_c${C}_t${TRIAL}.txt || true
         stop_server
 
-        sleep 5
+        sleep 8
 
     done
 done
 
+# --- Step 3: Tear down ---------------------------------------
 echo ""
 echo "Done. Raw results saved to $RAW_DIR/"
 
-# --- Step 6: Parse raw results into CSV ----------------------
+# --- Step 4: Parse raw results into CSV ----------------------
 SUMMARY=$RAW_DIR/summary.csv
 echo "workload,concurrency,trial,rps,mean_ms,p50_ms,p75_ms,p90_ms,p99_ms,errors" > $SUMMARY
 
