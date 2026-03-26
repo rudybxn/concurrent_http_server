@@ -40,14 +40,14 @@ echo "======= BENCHMARK START ======="
 
 # --- Helper: start server ------------------------------------
 start_server() {
-    taskset -c 0,1 $SERVER $PORT $THREADS $SCHEDULE $DOCROOT &
+    taskset -c 0,1 $SERVER -p $PORT -t $THREADS -b 16 -s $SCHEDULE > $RAW_DIR/server.log 2>&1 &
     SERVER_PID=$!
 
     # Poll until server is accepting connections
     for i in $(seq 1 15); do
         sleep 1
         if nc -z localhost $PORT 2>/dev/null; then
-            echo "[setup] Server ready to accept connections (PID $SERVER_PID)."
+            echo "[setup] Server ready (PID $SERVER_PID)."
             return
         fi
         echo "[setup] Waiting for server... ($i/15)"
@@ -66,7 +66,7 @@ stop_server() {
         echo "[teardown] Waiting for port to be released..."
         sleep 1
     done
-    echo "======= SERVER STOPPED ======="
+    echo "===== Server Stopped ====="
     echo ""
 }
 
@@ -77,14 +77,14 @@ for C in $CONCURRENCY_LEVELS; do
     for TRIAL in $(seq 1 $TRIALS); do
         WRK_THREADS=$(( C < 2 ? 1 : 2 ))
         echo ""
-        
+
         # Uniform small
         echo "[BENCHMARK] workload=uniform small  | concurrency=$C | trial=$TRIAL"
         start_server
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
-            $URL/small.bin > /dev/null
+            $URL/test/small.bin > /dev/null
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            $URL/small.bin > $RAW_DIR/small_c${C}_t${TRIAL}.txt
+            $URL/test/small.bin > $RAW_DIR/small_c${C}_t${TRIAL}.txt
         stop_server
 
         sleep 5
@@ -93,9 +93,9 @@ for C in $CONCURRENCY_LEVELS; do
         echo "[BENCHMARK] workload=uniform large  | concurrency=$C | trial=$TRIAL"
         start_server
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
-            $URL/large.bin > /dev/null
+            $URL/test/large.bin > /dev/null
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            $URL/large.bin > $RAW_DIR/large_c${C}_t${TRIAL}.txt
+            $URL/test/large.bin > $RAW_DIR/large_c${C}_t${TRIAL}.txt
         stop_server
 
         sleep 5
