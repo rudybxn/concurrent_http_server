@@ -35,10 +35,12 @@ echo "[setup] Stopping background services..."
 sudo systemctl stop snapd 2>/dev/null || true
 sudo systemctl stop unattended-upgrades 2>/dev/null || true
 echo "[setup] Background services stopped."
+echo ""
+echo "======= BENCHMARK START ======="
 
 # --- Helper: start server ------------------------------------
 start_server() {
-    taskset -c 0,1 $SERVER $PORT $THREADS $SCHEDULE $DOCROOT &
+    taskset -c 0,1 $SERVER -p $PORT -t $THREADS -b 16 -s $SCHEDULE > $RAW_DIR/server.log 2>&1 &
     SERVER_PID=$!
 
     # Poll until server is accepting connections
@@ -74,31 +76,32 @@ mkdir -p $RAW_DIR
 for C in $CONCURRENCY_LEVELS; do
     for TRIAL in $(seq 1 $TRIALS); do
         WRK_THREADS=$(( C < 2 ? 1 : 2 ))
+        echo ""
 
         # Uniform small
-        echo "[bench] uniform small  | concurrency=$C | trial=$TRIAL"
+        echo "[BENCHMARK] workload=uniform small  | concurrency=$C | trial=$TRIAL"
         start_server
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
-            $URL/small.bin > /dev/null
+            $URL/test/small.bin > /dev/null
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            $URL/small.bin > $RAW_DIR/small_c${C}_t${TRIAL}.txt
+            $URL/test/small.bin > $RAW_DIR/small_c${C}_t${TRIAL}.txt
         stop_server
 
         sleep 5
 
         # Uniform large
-        echo "[bench] uniform large  | concurrency=$C | trial=$TRIAL"
+        echo "[BENCHMARK] workload=uniform large  | concurrency=$C | trial=$TRIAL"
         start_server
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
-            $URL/large.bin > /dev/null
+            $URL/test/large.bin > /dev/null
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            $URL/large.bin > $RAW_DIR/large_c${C}_t${TRIAL}.txt
+            $URL/test/large.bin > $RAW_DIR/large_c${C}_t${TRIAL}.txt
         stop_server
 
         sleep 5
 
         # Heavy-tailed
-        echo "[bench] heavy-tailed   | concurrency=$C | trial=$TRIAL"
+        echo "[BENCHMARK] workload=heavy-tailed   | concurrency=$C | trial=$TRIAL"
         start_server
         taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
             -s $LUA_SCRIPT $URL > /dev/null
@@ -116,7 +119,7 @@ echo "Done. Raw results saved to $RAW_DIR/"
 
 # --- Step 6: Parse raw results into CSV ----------------------
 SUMMARY=$RAW_DIR/summary.csv
-echo "workload,concurrency,trial,rps,mean_ms,p50_ms,p95_ms,p99_ms,errors" > $SUMMARY
+echo "workload,concurrency,trial,rps,mean_ms,p50_ms,p75_ms,p90_ms,p99_ms,errors" > $SUMMARY
 
 parse_wrk() {
     local file=$1
@@ -127,11 +130,12 @@ parse_wrk() {
     rps=$(grep "Requests/sec" "$file" | awk '{print $2}')
     mean=$(grep "Latency" "$file" | head -1 | awk '{print $2}' | sed 's/ms//')
     p50=$(grep "50%" "$file" | awk '{print $2}' | sed 's/ms//')
-    p95=$(grep "95%" "$file" | awk '{print $2}' | sed 's/ms//')
+    p75=$(grep "75%" "$file" | awk '{print $2}' | sed 's/ms//')
+    p90=$(grep "90%" "$file" | awk '{print $2}' | sed 's/ms//')
     p99=$(grep "99%" "$file" | awk '{print $2}' | sed 's/ms//')
     errors=$(grep "Socket errors" "$file" | awk '{print $NF}' || echo 0)
 
-    echo "$workload,$concurrency,$trial,$rps,$mean,$p50,$p95,$p99,$errors" >> $SUMMARY
+    echo "$workload,$concurrency,$trial,$rps,$mean,$p50,$p75,$p90,$p99,$errors" >> $SUMMARY
 }
 
 for C in $CONCURRENCY_LEVELS; do
