@@ -6,8 +6,8 @@
     ### Sprint 3
     For Sprint 3, I primarily worked on the benchmarking deliverable, so my use of AI centered around the implementation of the benchmarking rig. I prompted Claude AI to help me understand the integration of the `wrk` load generator into our benchmarking rig, and it also suggested the `dd` tool to create .bin files which helped create a reproducible measurement environment. When I ran into issues where the server would refuse the connection as our benchmarking protocol called for multiple spin-ups and tear-downs of our server, Claude AI recommended the `netcat` tool to poll the server to confirm it was ready for use. I prompted Claude AI for changes to our benchmark .sh files in addition to manually reviewing and editing the files.
 ## Ishit Arhatia
-    For this sprint, I took help of Claude to help me format the annotated bibliography in markdown format. I prompted claude with all our findings from different sources and just put it in an ordered manner.
+    For this sprint, I took help of Claude to help me format the draft research paper in latex/IEEE format. I prompted claude with all our findings from different sources and just put it in an ordered manner and made sure that figures and tables dont overlap.
 ## Tomas Colorado
     For this sprint, I didn't use AI to assist me in my tasks.
 ## Rudrajit Banerjee
-    For this sprint, I didn't use AI for my tasks.
+    For sprint 3, I used AI to plan and organize code for the backend functionality of the server. I used it to generate boilerplate code upon which I made changes with respect to the functionality mentioned in our research proposal and concepts I learned in OSTEP. I also used it to reason about architectural decisions (like why the bounded buffer should be separate from the thread pool, and why the buffer should hold request_t structs instead of ints).  I also used it to understand unfamiliar POSIX APIs which I had not come across before (pthread_cond_wait, sigaction, stat).
