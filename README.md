@@ -124,6 +124,13 @@ what is measured and how to interpret the raw output in `benchmarks/raw/`.
 make clean
 ```
 
+### How to connect to http server via web client
+After running a server do the following steps to access the http server from a web client.
+1. Open FireFox web browser from the same machine that the server is running on.
+1. In the top search bar of the web browser, type in `http://localhost:8080/`.
+1. Voila! You are now able to interact with the http server.
+    - Please note that the http server currently only supports GET requests for PNG files from the web client.
+
 ---
 
 ## Project Structure

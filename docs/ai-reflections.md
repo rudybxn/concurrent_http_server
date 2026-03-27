@@ -8,6 +8,7 @@
 ## Ishit Arhatia
     For this sprint, I took help of Claude to help me format the draft research paper in latex/IEEE format. I prompted claude with all our findings from different sources and just put it in an ordered manner and made sure that figures and tables dont overlap.
 ## Tomas Colorado
-    For this sprint, I didn't use AI to assist me in my tasks.
+For sprint 3, I utilized Claude to help me understand and code the front-end of our http server. It helped me understand that we could either serve GET requests directly in our code, or through the use of an index.html file. It also helped me create the infrastructure to receive and properly respond to requests from clients. In regards to where it fell short, Claude did a bit too much than what we needed when writing the code for setting up the infrastructure. I had to explicitly tell it to slim down what we needed the server to do to just what we needed. Not only that, Claude wrote the code in unnecessarily difficult to understand ways. After a few iterations, we got it to a point where it was commented well and, for the most part, pretty straight forward.
+
 ## Rudrajit Banerjee
     For sprint 3, I used AI to plan and organize code for the backend functionality of the server. I used it to generate boilerplate code upon which I made changes with respect to the functionality mentioned in our research proposal and concepts I learned in OSTEP. I also used it to reason about architectural decisions (like why the bounded buffer should be separate from the thread pool, and why the buffer should hold request_t structs instead of ints).  I also used it to understand unfamiliar POSIX APIs which I had not come across before (pthread_cond_wait, sigaction, stat).
