@@ -138,6 +138,11 @@ int main(int argc, char *argv[]) {
     sigemptyset(&sa.sa_mask);
     sigaction(SIGTERM, &sa, NULL);
 
+    /* Ignore SIGPIPE so write() returns -1/EPIPE instead of killing
+       the process when a client closes the connection mid-transfer.
+       http.c already checks write() return values and handles it. */
+    signal(SIGPIPE, SIG_IGN);
+
     /* ================================================================
      * Step 3: Create TCP listening socket
      *

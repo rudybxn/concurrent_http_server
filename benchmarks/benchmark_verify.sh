@@ -9,7 +9,7 @@
 SCRIPT_DIR=$(dirname "$0")
 RAW_DIR=$SCRIPT_DIR/raw
 
-CONCURRENCY_LEVELS="10 25 50 100 200"
+CONCURRENCY_LEVELS="1 10 25 50 100 200"
 WORKLOADS="small large heavy"
 TRIALS=5
 
@@ -33,7 +33,7 @@ for WORKLOAD in $WORKLOADS; do
     done
 done
 
-EXPECTED=$((5 * 5 * 3))  # concurrency levels * trials * workloads
+EXPECTED=$((6 * 5 * 3))  # concurrency levels * trials * workloads
 FOUND=$(ls $RAW_DIR/*.txt 2>/dev/null | wc -l)
 
 echo "================================================"

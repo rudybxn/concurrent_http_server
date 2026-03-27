@@ -13,6 +13,22 @@
 
 set -e
 
+# --- Argument parsing ----------------------------------------
+WORKLOAD_FILTER=""
+
+while getopts "w:" opt; do
+    case $opt in
+        w) WORKLOAD_FILTER=$OPTARG ;;
+        *) echo "Usage: $0 [-w small|large|heavy]"; exit 1 ;;
+    esac
+done
+
+if [[ -n "$WORKLOAD_FILTER" && "$WORKLOAD_FILTER" != "small" && \
+      "$WORKLOAD_FILTER" != "large" && "$WORKLOAD_FILTER" != "heavy" ]]; then
+    echo "Error: -w must be one of: small, large, heavy"
+    exit 1
+fi
+
 # --- Configuration -------------------------------------------
 PORT=8080
 THREADS=4
@@ -78,37 +94,40 @@ for C in $CONCURRENCY_LEVELS; do
         echo ""
 
         # Uniform small
-        echo "[BENCHMARK] workload=uniform small  | concurrency=$C | trial=$TRIAL"
-        start_server
-        taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
-            $URL/test/small.bin > /dev/null || true
-        taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            $URL/test/small.bin > $RAW_DIR/small_c${C}_t${TRIAL}.txt || true
-        stop_server
-
-        sleep 8
+        if [[ -z "$WORKLOAD_FILTER" || "$WORKLOAD_FILTER" == "small" ]]; then
+            echo "[BENCHMARK] workload=uniform small  | concurrency=$C | trial=$TRIAL"
+            start_server
+            taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
+                $URL/test/small.bin > /dev/null || true
+            taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
+                $URL/test/small.bin > $RAW_DIR/small_c${C}_t${TRIAL}.txt || true
+            stop_server
+            sleep 8
+        fi
 
         # Uniform large
-        echo "[BENCHMARK] workload=uniform large  | concurrency=$C | trial=$TRIAL"
-        start_server
-        taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
-            $URL/test/large.bin > /dev/null || true
-        taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            $URL/test/large.bin > $RAW_DIR/large_c${C}_t${TRIAL}.txt || true
-        stop_server
-
-        sleep 8
+        if [[ -z "$WORKLOAD_FILTER" || "$WORKLOAD_FILTER" == "large" ]]; then
+            echo "[BENCHMARK] workload=uniform large  | concurrency=$C | trial=$TRIAL"
+            start_server
+            taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
+                $URL/test/large.bin > /dev/null || true
+            taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
+                $URL/test/large.bin > $RAW_DIR/large_c${C}_t${TRIAL}.txt || true
+            stop_server
+            sleep 8
+        fi
 
         # Heavy-tailed
-        echo "[BENCHMARK] workload=heavy-tailed   | concurrency=$C | trial=$TRIAL"
-        start_server
-        taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
-            -s $LUA_SCRIPT $URL > /dev/null || true
-        taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
-            -s $LUA_SCRIPT $URL > $RAW_DIR/heavy_c${C}_t${TRIAL}.txt || true
-        stop_server
-
-        sleep 8
+        if [[ -z "$WORKLOAD_FILTER" || "$WORKLOAD_FILTER" == "heavy" ]]; then
+            echo "[BENCHMARK] workload=heavy-tailed   | concurrency=$C | trial=$TRIAL"
+            start_server
+            taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$WARMUP_DURATION \
+                -s $LUA_SCRIPT $URL > /dev/null || true
+            taskset -c 2,3 wrk -t$WRK_THREADS -c$C -d$DURATION --latency \
+                -s $LUA_SCRIPT $URL > $RAW_DIR/heavy_c${C}_t${TRIAL}.txt || true
+            stop_server
+            sleep 8
+        fi
 
     done
 done
@@ -127,6 +146,7 @@ parse_wrk() {
     local concurrency=$3
     local trial=$4
 
+    [ -f "$file" ] || return
     rps=$(grep "Requests/sec" "$file" | awk '{print $2}')
     mean=$(grep "Latency" "$file" | head -1 | awk '{print $2}' | sed 's/ms//')
     p50=$(grep "50%" "$file" | awk '{print $2}' | sed 's/ms//')

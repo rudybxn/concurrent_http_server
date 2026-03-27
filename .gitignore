@@ -1,4 +1,2 @@
 server
-src/http.o
-src/main.o
-src/thread_pool.o
+src/*.o

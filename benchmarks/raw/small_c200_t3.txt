@@ -1,0 +1,13 @@
+Running 30s test @ http://localhost:8080/test/small.bin
+  2 threads and 200 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     7.12ms    1.44ms  39.88ms   87.83%
+    Req/Sec    13.63k     1.58k   18.84k    81.67%
+  Latency Distribution
+     50%    7.07ms
+     75%    7.53ms
+     90%    8.02ms
+     99%   12.30ms
+  813935 requests in 30.03s, 3.18GB read
+Requests/sec:  27103.56
+Transfer/sec:    108.46MB
