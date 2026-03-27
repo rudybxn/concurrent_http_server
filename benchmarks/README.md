@@ -13,11 +13,18 @@
 
 *Note: wrk embeds LuaJIT for scripted workloads — Lua does not need to be installed separately.*
 
-To recreate this environment, set up a new Ubuntu 22.04 LTS VM in UTM with 4 vCPUs and 4GB RAM. Install dependencies gcc and netcat:
+To recreate this environment, set up a new Ubuntu 22.04 LTS VM in UTM with 4 vCPUs and 4GB RAM. Install dependencies:
 
+Install gcc, make, build-essential, libssl-dev, and git:
 ```bash
 sudo apt update
-sudo apt install -y gcc make build-essential libssl-dev git netcat
+sudo apt install gcc make build-essential libssl-dev git 
+```
+
+Install netcat:
+
+```bash
+sudo apt install netcat-openbsd
 ```
 
 Install wrk:
