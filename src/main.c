@@ -33,7 +33,7 @@
 #define DEFAULT_PORT     8080
 #define DEFAULT_THREADS  4
 #define DEFAULT_BUFSIZE  16
-#define BACKLOG          10
+#define BACKLOG          512
 
 /* ---- Global state for signal handler --------------------------
    These are global because the SIGINT handler needs to access
@@ -136,7 +136,12 @@ int main(int argc, char *argv[]) {
     sa.sa_handler = handle_sigint;
     sa.sa_flags   = 0;
     sigemptyset(&sa.sa_mask);
-    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
+
+    /* Ignore SIGPIPE so write() returns -1/EPIPE instead of killing
+       the process when a client closes the connection mid-transfer.
+       http.c already checks write() return values and handles it. */
+    signal(SIGPIPE, SIG_IGN);
 
     /* ================================================================
      * Step 3: Create TCP listening socket
