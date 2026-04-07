@@ -4,7 +4,14 @@
  * Fixed-size pool of worker threads consuming from a shared
  * bounded buffer. Each worker runs an infinite loop:
  *
- *     lock → wait while empty → dequeue → unlock → handle → repeat
+ *     lock → wait while empty → check shutdown → unlock
+ *       → buffer_get (FCFS or SFF) → handle → repeat
+ *
+ * Scheduling policy:
+ *   pool->use_sff = 0  →  FCFS (default)
+ *   pool->use_sff = 1  →  SFF (shortest file first)
+ *   The flag is passed straight through to buffer_get() on every
+ *   dequeue, so the policy applies uniformly across all workers.
  *
  * Shutdown sequence:
  *   1. thread_pool_destroy() sets pool->shutdown = 1
@@ -27,10 +34,14 @@
  * the pool (to check the shutdown flag). We pass the pool
  * pointer as the thread argument since it contains both.
  *
- * Note: we can't just call buffer_get() directly because
- * buffer_get blocks unconditionally on empty. During shutdown,
- * we need workers to wake up and check the flag. So we inline
- * the lock/wait/check logic here instead of using buffer_get().
+ * Note: we keep the lock/wait/shutdown-check logic inline here
+ * rather than inside buffer_get(), because buffer_get() blocks
+ * unconditionally on an empty buffer and has no knowledge of the
+ * shutdown flag.  During shutdown we need workers to wake up,
+ * check the flag, and exit cleanly.  Once we confirm there is
+ * work to do (or that we should keep draining), we release the
+ * lock and delegate the actual dequeue to buffer_get(), which
+ * re-acquires the lock internally.
  * ---------------------------------------------------------------- */
 static void *worker_func(void *arg) {
     ThreadPool       *pool = (ThreadPool *)arg;
@@ -53,15 +64,17 @@ static void *worker_func(void *arg) {
             break;
         }
 
-        /* Dequeue from head (FCFS) */
-        request_t req = buf->entries[buf->head];
-        buf->head = (buf->head + 1) % buf->capacity;
-        buf->count--;
-
-        /* Wake producer if it was blocked on a full buffer */
-        pthread_cond_signal(&buf->not_full);
-
+        /* We must release the lock before calling buffer_get() because
+           buffer_get() acquires the same lock internally.  This is safe
+           because buffer_get() has its own while-loop that will re-wait
+           on not_empty if another worker races in and drains the buffer
+           between this unlock and buffer_get()'s lock acquisition. */
         pthread_mutex_unlock(&buf->lock);
+
+        /* Dequeue according to the configured scheduling policy:
+             use_sff = 0 → buffer_get takes from head (FCFS)
+             use_sff = 1 → buffer_get scans for the smallest file (SFF) */
+        request_t req = buffer_get(buf, pool->use_sff);
 
         /* ---- Handle the request (outside the critical section) ---- */
         http_handle(req.client_fd);
@@ -89,7 +102,7 @@ ThreadPool *thread_pool_init(int num_threads, bounded_buffer_t *buffer) {
         return NULL;
     }
 
-    pool->threads     = malloc(sizeof(pthread_t) * num_threads);
+    pool->threads = malloc(sizeof(pthread_t) * num_threads);
     if (!pool->threads) {
         perror("thread_pool_init: malloc threads");
         free(pool);
@@ -99,6 +112,8 @@ ThreadPool *thread_pool_init(int num_threads, bounded_buffer_t *buffer) {
     pool->num_threads = num_threads;
     pool->buffer      = buffer;
     pool->shutdown    = 0;
+    pool->use_sff     = 0;  /* default to FCFS; main() sets this after init
+                               before any requests arrive                    */
 
     /* Spawn workers */
     for (int i = 0; i < num_threads; i++) {

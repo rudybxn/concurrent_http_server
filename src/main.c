@@ -5,15 +5,24 @@
  * Entry point for the concurrent web server.
  *
  * Flow:
- *   1. Parse command-line args (-p port, -t threads, -b bufsize)
+ *   1. Parse command-line args (-p port, -t threads, -b bufsize,
+ *      -s schedalg)
  *   2. Create TCP listening socket
  *   3. Initialize bounded buffer and thread pool
- *   4. Accept loop (producer): accept connection → build
- *      request_t → submit to thread pool
+ *   4. Accept loop (producer): accept connection → peek at socket
+ *      to extract URI → build request_t → submit to thread pool
  *   5. On SIGINT: graceful shutdown
  *
  * The accept loop is the producer. Worker threads in the pool
  * are the consumers. The bounded buffer decouples them.
+ *
+ * Scheduling policies (set via -s):
+ *   FCFS  — requests are handled in arrival order (default)
+ *   SFF   — the worker always picks the smallest queued file next
+ *
+ * For SFF, main() must populate request_t.uri before enqueueing
+ * so that buffer_get() can stat() each entry while selecting the
+ * shortest job.  This is done with MSG_PEEK (see accept loop).
  * ============================================================= */
 
 #include <stdio.h>
@@ -22,6 +31,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <getopt.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
 
@@ -118,7 +129,7 @@ int main(int argc, char *argv[]) {
            port, num_threads, buf_capacity, schedalg);
 
     /* ================================================================
-     * Step 2: Set up SIGINT handler for graceful shutdown
+     * Step 2: Set up SIGINT/SIGTERM handler for graceful shutdown
      *
      * sigaction() is preferred over signal() because its behavior is
      * well-defined across platforms. When the user presses Ctrl+C,
@@ -136,6 +147,7 @@ int main(int argc, char *argv[]) {
     sa.sa_handler = handle_sigint;
     sa.sa_flags   = 0;
     sigemptyset(&sa.sa_mask);
+    sigaction(SIGINT,  &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
 
     /* Ignore SIGPIPE so write() returns -1/EPIPE instead of killing
@@ -199,6 +211,9 @@ int main(int argc, char *argv[]) {
      * dequeue → unlock → http_handle(). They block right away
      * because the buffer starts empty.
      *
+     * pool->use_sff is set after init but before any requests arrive,
+     * so there is no data race on the flag.
+     *
      * After this point, the system is ready: workers are waiting,
      * the socket is listening, we just need to start accepting.
      * ================================================================ */
@@ -217,6 +232,10 @@ int main(int argc, char *argv[]) {
     }
     pool_global = pool;
 
+    /* Tell workers which scheduling policy to use.
+       Set before any requests arrive so there is no data race. */
+    pool->use_sff = (strcmp(schedalg, "SFF") == 0);
+
     printf("======= SERVER STARTED =======\n");
     printf("Listening on port %d...\n", port);
     printf("Serving files from %s\n", WEB_ROOT);
@@ -231,18 +250,29 @@ int main(int argc, char *argv[]) {
      * completes the TCP handshake and returns a new socket fd for
      * that specific connection. server_fd stays open for the next one.
      *
-     * We build a request_t with the client fd and a timestamp, then
-     * call thread_pool_submit() which calls buffer_put(). If the
-     * buffer is full, buffer_put() blocks here — this is backpressure.
-     * The main thread pauses until a worker finishes a request and
-     * frees a slot, which is exactly the behavior we want under load.
+     * URI extraction (required for SFF scheduling):
+     *   We peek at the socket receive buffer with MSG_PEEK to read
+     *   the HTTP request line without consuming any bytes.  MSG_PEEK
+     *   leaves the data intact on the socket so that http_handle()'s
+     *   subsequent read() still sees the full, unmodified request.
+     *   Without MSG_PEEK we would consume the request here and
+     *   http_handle() would receive an empty read, breaking parsing.
      *
-     * Note: right now we only populate client_fd and arrival_ms.
-     * For SFF scheduling in Sprint 4, we'll read the HTTP request
-     * line and call stat() HERE (before enqueueing) to populate
-     * filename and file_size. The proposal requires stat() to happen
-     * outside the critical section so no I/O occurs while the
-     * mutex is held.
+     *   From the peeked bytes we extract the URI using the same
+     *   two-pointer technique as parse_request_line() in http.c:
+     *   the path sits between the first space (after the method) and
+     *   the second space (before the HTTP version string).
+     *
+     *   We also mirror the "/" → "/index.html" mapping that
+     *   http_handle() applies, so that stat() inside buffer_get()
+     *   resolves the same file on disk that will actually be served.
+     *
+     * We then build a request_t with the client fd, timestamp, and
+     * URI, then call thread_pool_submit() which calls buffer_put().
+     * If the buffer is full, buffer_put() blocks here — this is
+     * backpressure. The main thread pauses until a worker finishes
+     * a request and frees a slot, which is exactly the behaviour
+     * we want under load.
      * ================================================================ */
     while (running) {
         struct sockaddr_in client_addr;
@@ -264,6 +294,30 @@ int main(int argc, char *argv[]) {
         memset(&req, 0, sizeof(req));
         req.client_fd  = client_fd;
         req.arrival_ms = now_ms();
+
+        /* Peek at the request line to extract the URI.
+           MSG_PEEK copies bytes into `peek` but does NOT consume
+           them from the socket — http_handle()'s read() will still
+           see the complete request untouched.
+           We locate the two spaces that bracket the URI:
+             "GET /path/to/file.html HTTP/1.1\r\n..."
+                 ^sp1              ^sp2              */
+        char peek[512];
+        ssize_t n = recv(client_fd, peek, sizeof(peek) - 1, MSG_PEEK);
+        if (n > 0) {
+            peek[n] = '\0';
+            char *sp1 = strchr(peek, ' ');
+            char *sp2 = sp1 ? strchr(sp1 + 1, ' ') : NULL;
+            if (sp1 && sp2 && (size_t)(sp2 - sp1 - 1) < sizeof(req.uri)) {
+                size_t plen = sp2 - (sp1 + 1);
+                memcpy(req.uri, sp1 + 1, plen);
+                req.uri[plen] = '\0';
+                /* Mirror http_handle()'s root mapping so stat() inside
+                   buffer_get() resolves the same file that will be served */
+                if (strcmp(req.uri, "/") == 0)
+                    strncpy(req.uri, "/index.html", sizeof(req.uri) - 1);
+            }
+        }
 
         thread_pool_submit(pool, req);
     }
