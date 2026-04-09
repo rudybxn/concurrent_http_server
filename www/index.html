@@ -1,12 +1,194 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team 0101 — Concurrent Web Server</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet"> <!-- Ubuntu Mono font!!! :D-->
+  </head>
+
   <body>
-    <h2>Files</h2>
-    <p>Click a file below to view it.</p>
-    <ul>
-      <li><a href="/files/ecb_penguin_small.png">ecb_penguin_small.png</a></li>
-      <li><a href="/files/ecb_penguin_medium.png">ecb_penguin_medium.png</a></li>
-      <li><a href="/files/ecb_penguin_large.png">ecb_penguin_large.png</a></li>
-    </ul>
+    <div class="container">
+
+      <!-- Header -->
+      <div class="header">
+        <h1>Team 0101's Concurrent Web Server</h1>
+        <p class="byline">By Helena Zhuo, Rudrajit Banerjee, Ishit Arhatia, Tomas Colorado</p>
+        <hr>
+        <p class="tagline">A multi-threaded HTTP server using a fixed-size thread pool and a bounded buffer, following the producer-consumer pattern.</p>
+        <nav class="site-nav">
+          <span>See our Github for more information:</span>
+          <a href="https://github.com/cs5600-sp26/project-webserver-team0101/blob/main/README.md" class="link">README.md</a>
+          <a href="https://github.com/cs5600-sp26/project-webserver-team0101/blob/main/docs/paper_draft.pdf" class="link">Research Extension</a>
+          <a href="https://github.com/cs5600-sp26/project-webserver-team0101/blob/main/docs/glossary.md" class="link">Glossary.md</a>
+          <a href="https://github.com/cs5600-sp26/project-webserver-team0101/blob/main/benchmarks/README.md" class="link">Benchmarking Rig</a>
+          <a href="https://github.com/cs5600-sp26/project-webserver-team0101/blob/main/docs/bibliography.md" class="link">Bibliography</a>
+        </nav>
+        <hr>
+      </div>
+
+      <!-- Two-column section -->
+      <div class="split">
+
+        <!-- Left: Workload Simulator -->
+        <div class="split__left">
+          <h2>Workload Simulator</h2>
+          <p>This image is 478 KB. We downscale it to 4 KB to represent files in a uniform small-request workload, and upscale it to 1 MB to represent files in a uniform large-request workload. A heavy-tailed workload consists of a 90/10 distribution of small-/large-file requests.</p>
+
+          <figure>
+            <img src="./files/ecb_penguin_medium.png" style="width: 50%;" alt="Original - 478 KB">
+            <figcaption>Original Image: 478 KB</figcaption>
+          </figure>
+
+          <div class="image-pair">
+            <figure>
+              <img src="./files/ecb_penguin_small.png" alt="Small - 4 KB">
+              <figcaption>Small-File Size: 4 KB</figcaption>
+            </figure>
+            <figure>
+              <img src="./files/ecb_penguin_large.png" alt="Large - 1 MB">
+              <figcaption>Large-File Size: 1 MB</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <!-- Right: Workload buttons -->
+        <div class="split__right">
+          <h3>Simulate a Workload</h3>
+          <p>Click a button below to send a batch of requests to the server and observe throughput and latency.</p>
+
+          <!-- Results panel -->
+          <div id="sim-output" class="sim-output hidden">
+            <div id="sim-loading" class="sim-loading">
+              <div id="packet-stream" class="packet-stream"></div>
+              <div class="sim-loading-row">
+                <div class="spinner"></div>
+                <span id="sim-status">Connecting to server...</span>
+              </div>
+            </div>
+            <div id="sim-results" class="hidden">
+              <p id="sim-title" class="sim-title"></p>
+              <table class="sim-table">
+                <thead>
+                  <tr>
+                    <th>Conc.</th>
+                    <th>Mean RT (ms)</th>
+                    <th>p99 (ms)</th>
+                    <th>Req/s</th>
+                  </tr>
+                </thead>
+                <tbody id="res-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button class="btn" onclick="simulate('small')">Uniform Small — 4 KB</button>
+            <button class="btn" onclick="simulate('large')">Uniform Large — 1 MB</button>
+            <button class="btn" onclick="simulate('heavy')">Heavy-Tailed Workload</button>
+          </div>
+          <small class="disclaimer">*Note: This is a simulation, with data pulled from our benchmarking data and does not represent actual current-time server performance.</small>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+      const workloads = {
+        small: {
+          label: "Uniform Small — 4 KB",
+          rows: [
+            { conc: 10,  meanRT: "0.56", p99: "3.15", reqs: "15,122" },
+            { conc: 100, meanRT: "3.55", p99: "6.81", reqs: "26,715" },
+          ],
+          duration: 2000,
+        },
+        large: {
+          label: "Uniform Large — 1 MB",
+          rows: [
+            { conc: 10,  meanRT: "6.64",  p99: "17.97", reqs: "1,462" },
+            { conc: 100, meanRT: "56.34", p99: "87.61", reqs: "1,765" },
+          ],
+          duration: 3000,
+        },
+        heavy: {
+          label: "Heavy-Tailed Workload",
+          rows: [
+            { conc: 10,  meanRT: "1.21", p99: "5.97",  reqs: "8,074"  },
+            { conc: 100, meanRT: "8.79", p99: "16.23", reqs: "11,149" },
+          ],
+          duration: 2500,
+        },
+      };
+
+      const packetSizes = {
+        small: { sizes: ['sm', 'sm', 'sm', 'sm'], label: 'sm' },
+        large: { sizes: ['lg', 'lg', 'lg', 'lg'], label: 'lg' },
+        heavy: { sizes: ['sm', 'sm', 'sm', 'sm', 'sm', 'sm', 'sm', 'sm', 'sm', 'lg'], label: 'mixed' },
+      };
+
+      let packetInterval = null;
+
+      function spawnPacket(type) {
+        const stream = document.getElementById("packet-stream");
+        const pool = packetSizes[type].sizes;
+        const size = pool[Math.floor(Math.random() * pool.length)];
+        const pkt = document.createElement("div");
+        pkt.className = `packet packet-${size}`;
+        stream.appendChild(pkt);
+      }
+      const statuses = [
+        "Connecting to server...",
+        "Sending requests...",
+        "Receiving responses...",
+        "Measuring latency...",
+        "Calculating throughput...",
+      ];
+
+      function simulate(type) {
+        const w = workloads[type];
+        const output  = document.getElementById("sim-output");
+        const loading = document.getElementById("sim-loading");
+        const results = document.getElementById("sim-results");
+        const status  = document.getElementById("sim-status");
+
+        output.classList.remove("hidden");
+        loading.classList.remove("hidden");
+        results.classList.add("hidden");
+        document.getElementById("packet-stream").innerHTML = "";
+
+        packetInterval = setInterval(() => spawnPacket(type), 180);
+
+        let i = 0;
+        status.textContent = statuses[0];
+        const interval = setInterval(() => {
+          i = (i + 1) % statuses.length;
+          status.textContent = statuses[i];
+        }, w.duration / statuses.length);
+
+        setTimeout(() => {
+          clearInterval(interval);
+          clearInterval(packetInterval);
+          document.querySelectorAll(".packet").forEach(p => p.classList.add("persist"));
+          setTimeout(() => {
+            document.getElementById("packet-stream").innerHTML = "";
+            loading.classList.add("hidden");
+
+          document.getElementById("sim-title").textContent = w.label;
+          document.getElementById("res-tbody").innerHTML = w.rows.map(r => `
+            <tr>
+              <td>${r.conc}</td>
+              <td>${r.meanRT} ms</td>
+              <td>${r.p99} ms</td>
+              <td>${r.reqs}</td>
+            </tr>
+          `).join("");
+
+          results.classList.remove("hidden");
+          }, 400);
+        }, w.duration);
+      }
+    </script>
   </body>
 </html>
