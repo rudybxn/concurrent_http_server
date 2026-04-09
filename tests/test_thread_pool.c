@@ -54,7 +54,7 @@ static void test_all_requests_handled(void) {
     int num_requests = 100;
 
     bounded_buffer_t *buf  = buffer_init(buf_capacity);
-    ThreadPool       *pool = thread_pool_init(num_threads, buf);
+    ThreadPool       *pool = thread_pool_init(num_threads, buf, "FCFS");
     assert(pool != NULL);
 
     /* Submit work */
@@ -84,7 +84,7 @@ static void test_buffer_size_one(void) {
     int num_requests = 50;
 
     bounded_buffer_t *buf  = buffer_init(1);
-    ThreadPool       *pool = thread_pool_init(2, buf);
+    ThreadPool       *pool = thread_pool_init(2, buf, "FCFS");
     assert(pool != NULL);
 
     for (int i = 0; i < num_requests; i++) {
@@ -109,7 +109,7 @@ static void test_single_thread(void) {
     int num_requests = 30;
 
     bounded_buffer_t *buf  = buffer_init(4);
-    ThreadPool       *pool = thread_pool_init(1, buf);
+    ThreadPool       *pool = thread_pool_init(1, buf, "FCFS");
     assert(pool != NULL);
 
     for (int i = 0; i < num_requests; i++) {
@@ -131,7 +131,7 @@ static void test_single_thread(void) {
    Should not hang or crash. */
 static void test_shutdown_empty(void) {
     bounded_buffer_t *buf  = buffer_init(4);
-    ThreadPool       *pool = thread_pool_init(4, buf);
+    ThreadPool       *pool = thread_pool_init(4, buf, "FCFS");
     assert(pool != NULL);
 
     /* No work submitted — workers are all blocked on empty buffer */
@@ -159,7 +159,7 @@ static void test_high_volume(void) {
     int num_requests = 1000;
 
     bounded_buffer_t *buf  = buffer_init(16);
-    ThreadPool       *pool = thread_pool_init(4, buf);
+    ThreadPool       *pool = thread_pool_init(4, buf, "FCFS");
     assert(pool != NULL);
 
     for (int i = 0; i < num_requests; i++) {

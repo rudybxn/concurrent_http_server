@@ -1,45 +1,40 @@
 /* =============================================================
  * bounded_buffer.h
  *
- * Thread-safe bounded buffer (circular queue) shared between
- * the producer (main/accept loop) and consumers (worker threads).
+ * Thread-safe bounded buffer (circular queue) for the
+ * producer-consumer pattern. The main thread (producer)
+ * enqueues accepted connection descriptors; worker threads
+ * (consumers) dequeue them for processing.
  *
- * Supports two dequeue policies via buffer_get()'s use_sff flag:
- *   FCFS (use_sff=0) — items come out in the order they went in.
- *   SFF  (use_sff=1) — the item whose file is smallest on disk
- *                      comes out first; ties broken by arrival
- *                      order (FCFS among equals).
+ * The buffer holds request_t structs rather than bare ints
+ * so that metadata (file size, arrival time) is available
+ * for scheduling policies (FCFS / SFF) without refactoring.
  *
- * For SFF to work, request_t.uri must be populated before the
- * request is enqueued so buffer_get() can stat() each entry
- * while scanning for the shortest file.
+ * Synchronization:
+ *   - One pthread_mutex_t protects all shared state.
+ *   - Two condition variables:
+ *       not_empty  — workers wait here when the buffer is empty
+ *       not_full   — producer waits here when the buffer is full
  * ============================================================= */
 
 #ifndef BOUNDED_BUFFER_H
 #define BOUNDED_BUFFER_H
 
 #include <pthread.h>
+#include <sys/types.h>
 
-/* A single queued request.
-   client_fd  — accepted socket to read the request from and
-                write the response to.
-   arrival_ms — wall-clock timestamp (ms) recorded by main()
-                the moment accept() returns; used to break ties
-                in SFF (earliest arrival wins) and for latency
-                measurements.
-   uri        — request path extracted by main() via MSG_PEEK
-                before enqueueing (e.g. "/index.html"); used by
-                buffer_get() to stat() the file for SFF.       */
+/* ---- Request descriptor ----------------------------------------
+   Populated by the producer (main thread) before enqueueing.
+   file_size and filename will be used in Sprint 4 for SFF;
+   for now only client_fd needs to be set. */
 typedef struct {
-    int   client_fd;    /* accepted socket descriptor          */
-    long  arrival_ms;   /* timestamp for FCFS ordering         */
-    char  uri[512];     /* full path to file to get size       */
+    int   client_fd;        /* accepted socket descriptor          */
+    char  filename[256];    /* parsed URI path (set later)         */
+    off_t file_size;        /* from stat(), populated by producer  */
+    long  arrival_ms;       /* timestamp for FCFS ordering         */
 } request_t;
 
-/* The circular buffer -------------------------------------------
-   Producers wait on not_full; consumers wait on not_empty.
-   All fields except the condition variables are protected by
-   lock and must not be read or written without holding it.    */
+/* ---- Bounded buffer ------------------------------------------- */
 typedef struct {
     request_t *entries;     /* heap-allocated array of capacity     */
     int capacity;           /* max items the buffer can hold        */
@@ -50,19 +45,28 @@ typedef struct {
     pthread_mutex_t lock;
     pthread_cond_t  not_empty;  /* signaled after enqueue           */
     pthread_cond_t  not_full;   /* signaled after dequeue           */
-
 } bounded_buffer_t;
 
+/* Allocate and initialize a buffer with the given capacity.
+   Returns NULL on failure. */
 bounded_buffer_t *buffer_init(int capacity);
-void              buffer_put(bounded_buffer_t *buf, request_t req);
 
-/* Dequeue one request according to the chosen policy.
-   use_sff = 0 → FCFS: dequeue from head (oldest first).
-   use_sff = 1 → SFF:  scan all live entries and dequeue the one
-                        whose file is smallest; ties broken by
-                        arrival order (FCFS among equals).
-   Blocks if the buffer is empty.                               */
-request_t         buffer_get(bounded_buffer_t *buf, int use_sff);
-void              buffer_destroy(bounded_buffer_t *buf);
+/* Enqueue a request. Blocks if the buffer is full.
+   Called by the producer (main thread). */
+void buffer_put(bounded_buffer_t *buf, request_t req);
+
+/* Dequeue a request (FCFS — oldest first). Blocks if empty.
+   Called by consumer (worker) threads. */
+request_t buffer_get(bounded_buffer_t *buf);
+
+/* Dequeue the request with the smallest file_size (SFF).
+   Scans all entries, removes the winner, and shifts the
+   remaining elements to close the gap. Blocks if empty.
+   Called by consumer (worker) threads when -s SFF is active. */
+request_t buffer_get_sff(bounded_buffer_t *buf);
+
+/* Tear down: free the entries array, destroy mutex/condvars,
+   then free the buffer struct itself. */
+void buffer_destroy(bounded_buffer_t *buf);
 
 #endif
