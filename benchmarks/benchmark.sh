@@ -32,7 +32,13 @@ fi
 # --- Configuration -------------------------------------------
 PORT=8080
 THREADS=4
-SCHEDULE=FCFS
+# Determine the alg the user wishes to apply to the HTTP server
+# e.g. `./benchmark.sh SFF`
+if [[ $1 == "SFF" ]] || [[ "$1" == "sff" ]]; then
+    SCHEDULE=SFF
+else
+    SCHEDULE=FCFS
+fi
 
 WARMUP_DURATION=5s
 DURATION=30s
