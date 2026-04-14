@@ -111,7 +111,7 @@ ThreadPool *thread_pool_init(int num_threads, bounded_buffer_t *buffer) {
         }
     }
 
-    printf("thread_pool_init: %d workers spawned\n", num_threads);
+    printf("Thread Pool Initialization: %d workers spawned\n", num_threads);
     return pool;
 }
 
