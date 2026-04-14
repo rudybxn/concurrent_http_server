@@ -12,3 +12,5 @@
 
 ## Rudrajit Banerjee
     For sprint 3, I used AI to plan and organize code for the backend functionality of the server. I used it to generate boilerplate code upon which I made changes with respect to the functionality mentioned in our research proposal and concepts I learned in OSTEP. I also used it to reason about architectural decisions (like why the bounded buffer should be separate from the thread pool, and why the buffer should hold request_t structs instead of ints).  I also used it to understand unfamiliar POSIX APIs which I had not come across before (pthread_cond_wait, sigaction, stat).
+
+    For Sprint 4, I used AI to debug parts of our benchmarking rig and understanding the changes made as part of Tomas' SFF implementation. Initially we were running into issues with the benchmark completing correctly for SFF in high concurrencies due to deadlocks. It was helpful in understanding where exactly in our producer consumer architecture the server was breaking for higher throughput loads in wrk. 

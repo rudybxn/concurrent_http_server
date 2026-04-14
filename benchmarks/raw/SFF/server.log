@@ -1,0 +1,9 @@
+Config: port=8080 threads=4 buffer=16 schedule=SFF
+thread_pool_init: 4 workers spawned
+======= SERVER STARTED =======
+Listening on port 8080...
+Serving files from ./www
+
+Shutting down...
+thread_pool_destroy: all workers joined
+Server stopped.

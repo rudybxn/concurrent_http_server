@@ -22,6 +22,7 @@ while getopts "w:" opt; do
         *) echo "Usage: $0 [-w small|large|heavy]"; exit 1 ;;
     esac
 done
+shift $((OPTIND - 1))
 
 if [[ -n "$WORKLOAD_FILTER" && "$WORKLOAD_FILTER" != "small" && \
       "$WORKLOAD_FILTER" != "large" && "$WORKLOAD_FILTER" != "heavy" ]]; then
@@ -33,7 +34,7 @@ fi
 PORT=8080
 THREADS=4
 # Determine the alg the user wishes to apply to the HTTP server
-# e.g. `./benchmark.sh SFF`
+# e.g. `./benchmark.sh -w heavy SFF`
 if [[ $1 == "SFF" ]] || [[ "$1" == "sff" ]]; then
     SCHEDULE=SFF
 else
@@ -48,7 +49,7 @@ TRIALS=5
 SERVER=./server
 SCRIPT_DIR=$(dirname "$0")
 LUA_SCRIPT=$SCRIPT_DIR/heavy_tail.lua
-RAW_DIR=$SCRIPT_DIR/raw
+RAW_DIR=$SCRIPT_DIR/raw/$SCHEDULE
 URL=http://localhost:$PORT
 
 # --- Step 1: Minimize background noise -----------------------
@@ -153,12 +154,24 @@ parse_wrk() {
     local trial=$4
 
     [ -f "$file" ] || return
-    rps=$(grep "Requests/sec" "$file" | awk '{print $2}')
-    mean=$(grep "Latency" "$file" | head -1 | awk '{print $2}' | sed 's/ms//')
-    p50=$(grep "50%" "$file" | awk '{print $2}' | sed 's/ms//')
-    p75=$(grep "75%" "$file" | awk '{print $2}' | sed 's/ms//')
-    p90=$(grep "90%" "$file" | awk '{print $2}' | sed 's/ms//')
-    p99=$(grep "99%" "$file" | awk '{print $2}' | sed 's/ms//')
+
+    # Normalise a wrk latency value (e.g. 390.00us / 4.71ms / 1.23s) to ms
+    to_ms() {
+        echo "$1" | awk '{
+            v = $1
+            if (v ~ /us$/) { sub(/us$/, "", v); printf "%.4f", v/1000 }
+            else if (v ~ /ms$/) { sub(/ms$/, "", v); printf "%.4f", v }
+            else if (v ~ /s$/)  { sub(/s$/,  "", v); printf "%.4f", v*1000 }
+            else printf "%.4f", v
+        }'
+    }
+
+    rps=$(grep "Requests/sec"   "$file" | awk '{print $2}')
+    mean=$(to_ms "$(grep "Latency" "$file" | head -1 | awk '{print $2}')")
+    p50=$(to_ms  "$(grep -E "^\s+50%" "$file" | awk '{print $2}')")
+    p75=$(to_ms  "$(grep -E "^\s+75%" "$file" | awk '{print $2}')")
+    p90=$(to_ms  "$(grep -E "^\s+90%" "$file" | awk '{print $2}')")
+    p99=$(to_ms  "$(grep -E "^\s+99%" "$file" | awk '{print $2}')")
     errors=$(grep "Socket errors" "$file" | awk '{print $NF}' || echo 0)
 
     echo "$workload,$concurrency,$trial,$rps,$mean,$p50,$p75,$p90,$p99,$errors" >> $SUMMARY
