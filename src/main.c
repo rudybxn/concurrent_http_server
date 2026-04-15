@@ -24,6 +24,7 @@
 #include <getopt.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 
 #include "http.h"
 #include "bounded_buffer.h"
@@ -210,7 +211,7 @@ int main(int argc, char *argv[]) {
     }
     buf_global = buf;
 
-    ThreadPool *pool = thread_pool_init(num_threads, buf);
+    ThreadPool *pool = thread_pool_init(num_threads, buf, schedalg);
     if (!pool) {
         fprintf(stderr, "Failed to initialize thread pool\n");
         buffer_destroy(buf);
@@ -221,6 +222,9 @@ int main(int argc, char *argv[]) {
     printf("\n======= SERVER RUNNING =======\n");
     printf("Ctrl+click (cmd+click on Mac) to open in your browser: http://localhost:%d\n\n", port);
     printf("Press Ctrl+C to stop the server.\n");
+
+    /* Determine scheduling mode once, outside the loop */
+    int use_sff = (strcmp(schedalg, "SFF") == 0);
 
     /* ================================================================
      * Step 5: Accept loop (producer side of producer-consumer)
@@ -238,12 +242,11 @@ int main(int argc, char *argv[]) {
      * The main thread pauses until a worker finishes a request and
      * frees a slot, which is exactly the behavior we want under load.
      *
-     * Note: right now we only populate client_fd and arrival_ms.
-     * For SFF scheduling in Sprint 4, we'll read the HTTP request
-     * line and call stat() HERE (before enqueueing) to populate
-     * filename and file_size. The proposal requires stat() to happen
-     * outside the critical section so no I/O occurs while the
-     * mutex is held.
+     * For SFF scheduling: we use MSG_PEEK to read the HTTP request
+     * line without consuming it from the socket, parse the path,
+     * and call stat() to learn the file size. This happens here,
+     * outside the critical section, so no I/O holds the mutex.
+     * Workers will re-read the same bytes normally via http_handle().
      * ================================================================ */
     while (running) {
         struct sockaddr_in client_addr;
@@ -265,6 +268,39 @@ int main(int argc, char *argv[]) {
         memset(&req, 0, sizeof(req));
         req.client_fd  = client_fd;
         req.arrival_ms = now_ms();
+
+        /* ---- SFF: peek at request line and stat the file ---- *
+         * MSG_PEEK reads bytes without consuming them, so the
+         * worker's http_handle() will see the same data when it
+         * calls read() on the socket later.
+         *
+         * If peeking or stat() fails we simply leave file_size=0
+         * (treated as smallest by SFF, which is a safe fallback).
+         * FCFS skips this block entirely.
+         * ----------------------------------------------------- */
+        if (use_sff) {
+            char peek_buf[4096];
+            ssize_t n = recv(client_fd, peek_buf, sizeof(peek_buf) - 1, MSG_PEEK);
+            if (n > 0) {
+                peek_buf[n] = '\0';
+                /* Parse the first token pair: "METHOD /path HTTP/x.x" */
+                char method[16], uri_path[256];
+                if (sscanf(peek_buf, "%15s %255s", method, uri_path) == 2) {
+                    /* Resolve "/" to the default page, same as http_handle() */
+                    if (strcmp(uri_path, "/") == 0)
+                        strncpy(uri_path, "/index.html", sizeof(uri_path) - 1);
+                    /* Build the full filesystem path */
+                    char file_path[512];
+                    snprintf(file_path, sizeof(file_path), "%s%s", WEB_ROOT, uri_path);
+                    /* stat() outside the critical section — no I/O in the mutex */
+                    struct stat st;
+                    if (stat(file_path, &st) == 0) {
+                        req.file_size = st.st_size;
+                        strncpy(req.filename, uri_path, sizeof(req.filename) - 1);
+                    }
+                }
+            }
+        }
 
         thread_pool_submit(pool, req);
     }

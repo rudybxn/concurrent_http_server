@@ -51,11 +51,19 @@ typedef struct {
    Returns NULL on failure. */
 bounded_buffer_t *buffer_init(int capacity);
 
-/* Enqueue a request. Blocks if the buffer is full.
+/* Enqueue a request in arrival order (FCFS). Blocks if full.
    Called by the producer (main thread). */
 void buffer_put(bounded_buffer_t *buf, request_t req);
 
-/* Dequeue a request (FCFS — oldest first). Blocks if empty.
+/* Enqueue a request in ascending file_size order (SFF).
+   Shifts existing entries to insert the new one in its sorted
+   position so that buffer_get always dequeues the shortest file.
+   Blocks if full. Called by the producer (main thread). */
+void buffer_put_sff(bounded_buffer_t *buf, request_t req);
+
+/* Dequeue from head. Blocks if empty.
+   Works for both FCFS (arrival order) and SFF (size order)
+   because the ordering is established at insert time.
    Called by consumer (worker) threads. */
 request_t buffer_get(bounded_buffer_t *buf);
 
