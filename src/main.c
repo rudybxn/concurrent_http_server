@@ -115,7 +115,8 @@ int main(int argc, char *argv[]) {
         usage(argv[0]);
     }
 
-    printf("Config: port=%d threads=%d buffer=%d schedule=%s\n",
+    printf("\n======= CONFIGURATION =======\n");
+    printf("Port: %d\nThreads: %d\nBuffer Capacity: %d\nScheduling Policy: %s\n",
            port, num_threads, buf_capacity, schedalg);
 
     /* ================================================================
@@ -218,9 +219,9 @@ int main(int argc, char *argv[]) {
     }
     pool_global = pool;
 
-    printf("======= SERVER STARTED =======\n");
-    printf("Listening on port %d...\n", port);
-    printf("Serving files from %s\n", WEB_ROOT);
+    printf("\n======= SERVER RUNNING =======\n");
+    printf("Ctrl+click (cmd+click on Mac) to open in your browser: http://localhost:%d\n\n", port);
+    printf("Press Ctrl+C to stop the server.\n");
 
     /* Determine scheduling mode once, outside the loop */
     int use_sff = (strcmp(schedalg, "SFF") == 0);
