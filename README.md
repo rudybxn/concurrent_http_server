@@ -1,11 +1,11 @@
-# OSTEP G.5 Concurrent Web Server — Team 0101
+# Concurrent Web Server in C
 
 This project explores the impact of size-based scheduling on concurrent web
 server performance. We implement a multi-threaded HTTP server using a
 fixed-size thread pool and a bounded buffer following the producer-consumer
-pattern, as described in the OSTEP curriculum (G.5). The main thread accepts
+pattern. The main thread accepts
 incoming TCP connections and enqueues them into a shared buffer; a pool of
-worker threads dequeue and service requests. Our research extension compares
+worker threads dequeue and service requests. The research extension compares
 two scheduling policies — **First-Come-First-Served (FCFS)** and
 **Shortest-File-First (SFF)** — to evaluate their impact on mean response
 time and tail latency under varying load and file-size distributions.
@@ -197,9 +197,3 @@ comparison is handled by `benchmarks/benchmark.sh`.
 | Helena Zhuo | MS Computer Science, Northeastern University |
 | Tomas Colorado | MS Computer Science, Northeastern University |
 
----
-
-## Links
-
-- [Research Proposal](https://github.com/cs5600-sp26/project-webserver-team0101/blob/main/docs/updated_cs5800_research_question.pdf)
-- [Contribution Tracker](https://docs.google.com/spreadsheets/d/1h_nNWYMj3j0Qd1xJ3MwdG4fjjc7fUvO87jzA1AlHy-k/edit?gid=0#gid=0)
